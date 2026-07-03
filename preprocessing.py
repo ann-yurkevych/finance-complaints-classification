@@ -1,5 +1,6 @@
 import pandas as pd
-from data_loading import load_data
+from data_loading import *
+
 # empty text field handling
 def remove_missing_text_rows(df: pd.DataFrame, col: str = 'Consumer complaint narrative'):
     df = df[df[col].notna()]
@@ -33,10 +34,12 @@ def prepare_dataset(df: pd.DataFrame, sample_size=None):
 if __name__ == "__main__":
 
     RAW_PATH = "cfpb_complaints.csv.zip"
-    dataset = load_raw_data(RAW_PATH)
+    dataset = load_dataset(RAW_PATH)
 
-    SAMPLE_SIZE = 10000
+    SAMPLE_SIZE = 100000
     raw_df = prepare_dataset(dataset, sample_size=SAMPLE_SIZE)
-
     raw_df.to_csv("raw_df_sample.csv", index=False)
+
     print(f"Saved {raw_df.shape[0]} rows to raw_df_sample.csv")
+    print("\nClass proportions in sample:")
+    print(raw_df["Company response to consumer"].value_counts(normalize=True))
