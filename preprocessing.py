@@ -1,5 +1,6 @@
 import pandas as pd
 from data_loading import *
+from sklearn.model_selection import train_test_split
 
 # empty text field handling
 def remove_missing_text_rows(df: pd.DataFrame, col: str = 'Consumer complaint narrative'):
@@ -25,6 +26,25 @@ def stratify_sample(df: pd.DataFrame, target_col: str="Company response to consu
 
     return pd.concat(sampled_groups, ignore_index=True)
 
+# splitting into train, test, validation: 70/15/15
+def split_train_test(df: pd.DataFrame, target: str, test_size: float=0.3, random_state: int=42):
+
+    X_train, X_test = train_test_split(
+        df,
+        test_size=test_size,  # 70% train, 30% test
+        stratify=df[target],
+        random_state=random_state
+    )
+
+    X_test, X_validation = train_test_split(
+        X_test,
+        test_size=0.5,  # split the 30% of X_test into 15% test, 15% validation
+        stratify=X_test[target],
+        random_state=random_state
+    )
+    return X_train, X_test, X_validation
+# call: X_train, X_test, X_validation = split_train_test(raw_df, 'Company response to consumer')
+
 def prepare_dataset(df: pd.DataFrame, sample_size=None):
     df = remove_missing_text_rows(df)
     df = deduplicate(df)
@@ -43,3 +63,12 @@ if __name__ == "__main__":
     print(f"Saved {raw_df.shape[0]} rows to raw_df_sample.csv")
     print("\nClass proportions in sample:")
     print(raw_df["Company response to consumer"].value_counts(normalize=True))
+
+    X_train, X_test, X_validation = split_train_test(raw_df, 'Company response to consumer')
+    print(f"\nTrain shape: {X_train.shape}")
+    print(f"Test shape: {X_test.shape}")
+    print(f"Validation shape: {X_validation.shape}")
+
+    X_train.to_csv("train.csv", index=False)
+    X_test.to_csv("test.csv", index=False)
+    X_validation.to_csv("validation.csv", index=False)
