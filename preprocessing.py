@@ -1,6 +1,8 @@
 import pandas as pd
 from data_loading import *
 from sklearn.model_selection import train_test_split
+import nltk
+from nltk.tokenize import word_tokenize
 
 # empty text field handling
 def remove_missing_text_rows(df: pd.DataFrame, col: str = 'Consumer complaint narrative'):
@@ -8,11 +10,9 @@ def remove_missing_text_rows(df: pd.DataFrame, col: str = 'Consumer complaint na
     df = df[df[col].str.strip() != ""]
     return df
 
-
 # handle duplication of rows 
 def deduplicate(df: pd.DataFrame, col: str = 'Consumer complaint narrative'):
    return df.drop_duplicates(subset=col)
-
 
 # stratified sampling to go from 10 millions rows to 100.000 - 200.000, range is custom
 def stratify_sample(df: pd.DataFrame, target_col: str="Company response to consumer", sample_size: int=None, random_state: int = 42):
@@ -43,13 +43,36 @@ def split_train_test(df: pd.DataFrame, target: str, test_size: float=0.3, random
         random_state=random_state
     )
     return X_train, X_test, X_validation
-# call: X_train, X_test, X_validation = split_train_test(raw_df, 'Company response to consumer')
+
+def drop_rare_classes(df: pd.DataFrame, target: str, min_count: int = 20):
+
+    counts = df[target].value_counts()
+    rare_classes = counts[counts < min_count].index.tolist()
+    if rare_classes:
+        print(f"Dropping rare classes: {min_count}: {rare_classes}")
+        df = df[~df[target].isin(rare_classes)]
+
+    return df
 
 def prepare_dataset(df: pd.DataFrame, sample_size=None):
     df = remove_missing_text_rows(df)
     df = deduplicate(df)
     df = stratify_sample(df, sample_size=sample_size)
+    df = drop_rare_classes(df, 'Company response to consumer')
+
     return df
+"""
+Steps for text preprocessing:
+1. Tokenization: word-level tokenization. 
+2. Stopwords removal.
+3. Lemmatization. 
+4. Vectorization. 
+"""
+
+# tokenization
+
+# handle class imnbalance
+
 
 if __name__ == "__main__":
 
