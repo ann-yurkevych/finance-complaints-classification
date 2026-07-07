@@ -3,7 +3,7 @@ from data_loading import *
 from sklearn.model_selection import train_test_split
 import nltk
 from nltk.tokenize import word_tokenize
-
+import re
 # empty text field handling
 def remove_missing_text_rows(df: pd.DataFrame, col: str = 'Consumer complaint narrative'):
     df = df[df[col].notna()]
@@ -54,16 +54,23 @@ def drop_rare_classes(df: pd.DataFrame, target: str, min_count: int = 20):
 
     return df
 
+def add_word_count_feature(df: pd.DataFrame, text_col: str = 'Consumer complaint narrative') -> pd.DataFrame:
+    df = df.copy()
+    df['word_count'] = df[text_col].str.split().str.len()
+    return df
+
+def remove_redaction_tokens(text: str) -> str:
+    text = re.sub(r'\bx{2,}\b', '', text, flags=re.IGNORECASE)
+    return text
+
 def prepare_dataset(df: pd.DataFrame, sample_size=None):
+    text = remove_redaction_tokens(text)
     df = remove_missing_text_rows(df)
     df = deduplicate(df)
     df = stratify_sample(df, sample_size=sample_size)
     df = drop_rare_classes(df, 'Company response to consumer')
 
     return df
-
-# handle class imbalance: should be done on vectorized text feature
-
 
 if __name__ == "__main__":
 
