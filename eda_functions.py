@@ -28,3 +28,13 @@ def class_distribution_plot(df: pd.DataFrame, target: str = 'Company response to
     plt.suptitle(f'Target Variable Class Distribution: "{target}"', fontsize=15, fontweight='bold', y=1.02)
     plt.tight_layout()
     plt.show()
+
+
+def average_word_length(text):
+    if pd.isna(text) or text.strip() == "":
+        return 0
+    words = text.split()
+    if not words:
+        return 0
+    return sum(len(word) for word in words) / len(words)
+

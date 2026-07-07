@@ -61,17 +61,8 @@ def prepare_dataset(df: pd.DataFrame, sample_size=None):
     df = drop_rare_classes(df, 'Company response to consumer')
 
     return df
-"""
-Steps for text preprocessing:
-1. Tokenization: word-level tokenization. 
-2. Stopwords removal.
-3. Lemmatization. 
-4. Vectorization. 
-"""
 
-# tokenization
-
-# handle class imnbalance
+# handle class imbalance: should be done on vectorized text feature
 
 
 if __name__ == "__main__":
