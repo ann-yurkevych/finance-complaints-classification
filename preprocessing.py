@@ -63,14 +63,29 @@ def remove_redaction_tokens(text: str) -> str:
     text = re.sub(r'\bx{2,}\b', '', text, flags=re.IGNORECASE)
     return text
 
-def prepare_dataset(df: pd.DataFrame, sample_size=None):
-    text = remove_redaction_tokens(text)
-    df = remove_missing_text_rows(df)
-    df = deduplicate(df)
-    df = stratify_sample(df, sample_size=sample_size)
-    df = drop_rare_classes(df, 'Company response to consumer')
+def drop_cols(df: pd.DataFrame, columns_to_drop: list):
+    return df.drop(columns=columns_to_drop, errors="ignore")
 
+
+
+# prepare_dataset() will be called in Pipeline() for classifiers as preprocessing step
+def prepare_dataset(df: pd.DataFrame, sample_size=None, text_col='Consumer complaint narrative'): 
+    df = drop_cols(df, ['Tags', 'Submitted via', 'Complaint ID', 'Company public response'])
+    df = drop_rare_classes(df, 'Company response to consumer') # rare target values: initially there was 7 of them, but only 5 important
+    df = remove_missing_text_rows(df)
+    df[text_col] = df[text_col].apply(remove_redaction_tokens)
+    df = deduplicate(df)
+    # Replace missing values with "Unknown" category. 
+    # All rare Companies values convert into "Others" category. 
+    # Convert two time columns to datetime type from object type.
+    # Create two additional features: processing time and year. 
+    # encode
     return df
+
+def extract_target(df: pd.DataFrame, target_col: str): 
+    X = df.drop(columns=[target_col]).copy()
+    y = df[target_col].copy()
+    return X, y
 
 if __name__ == "__main__":
 

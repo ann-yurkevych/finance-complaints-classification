@@ -15,8 +15,6 @@ DEFAULT_COLOR = '#999999'
 def class_distribution_plot(df: pd.DataFrame, target: str = 'Company response to consumer'):
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
     colors = ['#E69F00', '#56B4E9', '#009E73', '#F0E442', '#D55E00']
-
-    # Bar plot of counts
     counts = df[target].value_counts()
     axes[0].bar(counts.index.astype(str), counts.values, color=['green', 'coral'], edgecolor='white', width=0.5)
     axes[0].set_title('Class Distribution (Counts)', fontsize=13, fontweight='bold')
@@ -26,7 +24,6 @@ def class_distribution_plot(df: pd.DataFrame, target: str = 'Company response to
     for i, v in enumerate(counts.values):
         axes[0].text(i, v + 200, f'{v:,}', ha='center', fontweight='bold')
     
-    # Bar plot of proportions
     proportions = df[target].value_counts(normalize=True)
     axes[1].bar(proportions.index.astype(str), proportions.values, color=['green', 'coral'], edgecolor='white', width=0.5)
     axes[1].set_title('Class Distribution (Proportions)', fontsize=13, fontweight='bold')
