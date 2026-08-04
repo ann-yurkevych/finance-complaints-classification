@@ -9,6 +9,7 @@ from text_features import (
     preprocess_text
 )
 import pandas as pd
+import os
 from preprocessing import (
     extract_target,
     prepare_dataset
@@ -74,5 +75,14 @@ sample_weights = compute_sample_weight(class_weight="balanced", y=y_train) # imb
 pipeline.fit(X_train, y_train, clf__sample_weight=sample_weights)
 predictions = pipeline.predict(X_test)
 
+output_dir = "models_results/XGBoost"
+os.makedirs(output_dir, exist_ok=True)
+
+report_dict = classification_report(y_test, predictions, target_names=label_encoder.classes_, output_dict=True)
+macro_f1 = f1_score(y_test, predictions, average='macro')
+
 print(classification_report(y_test, predictions, target_names=label_encoder.classes_))
 print(f"Macro-F1: {f1_score(y_test, predictions, average='macro'):.4f}")
+
+report_df = pd.DataFrame(report_dict).transpose()
+report_df.to_excel(os.path.join(output_dir, "classification_report.xlsx"))
