@@ -17,6 +17,7 @@ from preprocessing import (
 from sklearn.metrics import classification_report, f1_score
 from text_features import clean_series # preprocess_text() includes tokenization, stopwords removal, lemmatization
 import joblib
+import json
 
 """Preprocessing steps:
 Sample from raw file.
@@ -76,6 +77,8 @@ predictions = pipeline.predict(X_test)
 
 output_dir = "models_results/XGBoost"
 os.makedirs(output_dir, exist_ok=True)
+output_dir = "models_results/XGBoost_finetuned"
+os.makedirs(output_dir, exist_ok=True)
 
 report_dict = classification_report(y_test, predictions, target_names=label_encoder.classes_, output_dict=True)
 macro_f1 = f1_score(y_test, predictions, average='macro')
@@ -88,3 +91,37 @@ report_df.to_excel(os.path.join(output_dir, "classification_report.xlsx"))
 
 joblib.dump(pipeline, "models_results/XGBoost/pipeline.joblib") # saved in joblib for shap and feature importance analysis
 joblib.dump(label_encoder, "models_results/XGBoost/label_encoder.joblib")
+
+# fine-tuned model
+with open("models_results/XGBoost/best_params.json") as f:
+    best_params = json.load(f)
+
+pipeline = Pipeline([
+    ("preprocessing", column_transformer),
+    ("clf", XGBClassifier(
+        **best_params,
+        objective="multi:softmax",
+        num_class=len(label_encoder.classes_),
+        eval_metric="mlogloss",
+        random_state=42
+    ))
+])
+sample_weights = compute_sample_weight(class_weight="balanced", y=y_train)
+pipeline.fit(X_train, y_train, clf__sample_weight=sample_weights)
+
+joblib.dump(pipeline, os.path.join(output_dir, "pipeline_tuned.joblib"))
+joblib.dump(label_encoder, os.path.join(output_dir, "label_encoder.joblib"))
+
+predictions = pipeline.predict(X_test)
+report_dict = classification_report(y_test, predictions, target_names=label_encoder.classes_, output_dict=True)
+macro_f1 = f1_score(y_test, predictions, average='macro')
+
+print(f"Macro-F1 (tuned): {macro_f1:.4f}")
+
+report_df = pd.DataFrame(report_dict).transpose()
+report_df.to_excel(os.path.join(output_dir, "classification_report.xlsx"))
+
+with open(os.path.join(output_dir, "macro_f1.txt"), "w") as f:
+    f.write(f"Macro-F1: {macro_f1:.4f}\n")
+
+    
