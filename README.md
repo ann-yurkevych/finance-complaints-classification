@@ -11,4 +11,5 @@ The target varible is ´Company response to the consumer´.
 1. Go to `data_loading.py file`. 
 2. Run the command: `python data_loading.py`
 3. Run the command: `python preprocessing.py`. 
-4. 
+4. Run the command: `XGBoost_classifier.py`
+5. 
