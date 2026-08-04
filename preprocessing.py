@@ -66,20 +66,56 @@ def remove_redaction_tokens(text: str) -> str:
 def drop_cols(df: pd.DataFrame, columns_to_drop: list):
     return df.drop(columns=columns_to_drop, errors="ignore")
 
+# Replace missing values with "Unknown" category. 
+def fill_categorical_missing(df: pd.DataFrame):
+    df = df.copy()
+    df['Sub-product'] = df['Sub-product'].fillna('Not applicable')
+    df['Sub-issue'] = df['Sub-issue'].fillna('Not applicable')
+    df['State'] = df['State'].fillna('Unknown')
+    return df
 
+# All rare Companies values convert into "Others" category. 
+def group_rare_companies(df: pd.DataFrame, company_col: str = 'Company', top_n: int = 20):
+    df = df.copy()
+    top_companies = df[company_col].value_counts().head(top_n).index
+    df[company_col] = df[company_col].where(df[company_col].isin(top_companies), 'Other')
+    return df
+
+# Convert two time columns to datetime type from object type.
+def convert_date_columns(df: pd.DataFrame):
+    """Converts the two date columns from object/string to datetime type."""
+    df = df.copy()
+    df['Date received'] = pd.to_datetime(df['Date received'], format='mixed', utc=True)
+    df['Date sent to company'] = pd.to_datetime(df['Date sent to company'], format='mixed', utc=True)
+    return df
+
+# Create two additional features: processing time and year. 
+def add_processing_days_feature(df: pd.DataFrame):
+    """Derives processing_days: gap between Date received and Date sent to company."""
+    df = df.copy()
+    df['processing_days'] = (df['Date sent to company'] - df['Date received']).dt.days
+    return df
+
+def add_year_feature(df: pd.DataFrame):
+    """Derives year from Date received."""
+    df = df.copy()
+    df['year'] = df['Date received'].dt.year
+    return df
 
 # prepare_dataset() will be called in Pipeline() for classifiers as preprocessing step
 def prepare_dataset(df: pd.DataFrame, sample_size=None, text_col='Consumer complaint narrative'): 
     df = drop_cols(df, ['Tags', 'Submitted via', 'Complaint ID', 'Company public response'])
-    df = drop_rare_classes(df, 'Company response to consumer') # rare target values: initially there was 7 of them, but only 5 important
     df = remove_missing_text_rows(df)
     df[text_col] = df[text_col].apply(remove_redaction_tokens)
     df = deduplicate(df)
-    # Replace missing values with "Unknown" category. 
-    # All rare Companies values convert into "Others" category. 
-    # Convert two time columns to datetime type from object type.
-    # Create two additional features: processing time and year. 
-    # encode
+    df = stratify_sample(df, sample_size=sample_size)
+    df = drop_rare_classes(df, 'Company response to consumer') # rare target values: initially there was 7 of them, but only 5 important
+    df = add_word_count_feature(df, text_col)
+    df = fill_categorical_missing(df)
+    df = group_rare_companies(df)
+    df = convert_date_columns(df)
+    df = add_processing_days_feature(df)
+    df = add_year_feature(df)
     return df
 
 def extract_target(df: pd.DataFrame, target_col: str): 
