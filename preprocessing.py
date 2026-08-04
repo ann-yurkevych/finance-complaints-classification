@@ -102,11 +102,11 @@ def add_year_feature(df: pd.DataFrame):
     df['year'] = df['Date received'].dt.year
     return df
 
-# prepare_dataset() will be called in Pipeline() for classifiers as preprocessing step
+# prepare_dataset() contains all preprocessing steps from earlier defined function, in the Pipeline() will not be called
 def prepare_dataset(df: pd.DataFrame, sample_size=None, text_col='Consumer complaint narrative'): 
     df = drop_cols(df, ['Tags', 'Submitted via', 'Complaint ID', 'Company public response'])
     df = remove_missing_text_rows(df)
-    df[text_col] = df[text_col].apply(remove_redaction_tokens)
+    df[text_col] = df[text_col].apply(remove_redaction_tokens) # strip XXXX and XX 
     df = deduplicate(df)
     df = stratify_sample(df, sample_size=sample_size)
     df = drop_rare_classes(df, 'Company response to consumer') # rare target values: initially there was 7 of them, but only 5 important

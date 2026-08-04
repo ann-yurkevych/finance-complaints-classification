@@ -1,8 +1,9 @@
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer
+from xgboost import XGBClassifier
 from sklearn.compose import ColumnTransformer
+from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
 from text_features import preprocess_text
 import pandas as pd
 from preprocessing import (
@@ -35,7 +36,6 @@ X_test, y_test = extract_target(test_df, 'Company response to consumer')
 X_val, y_val = extract_target(val_df, 'Company response to consumer')
 
 def clean_series(text_series):
-
     return text_series.apply(preprocess_text) # preprocess_text() includes tokenization, stopwords removal, lemmatization
 
 
@@ -43,12 +43,14 @@ pipeline = Pipeline([
 
     ("clean", FunctionTransformer(clean_series)),
     ("tfidf", TfidfVectorizer(max_features=10000, ngram_range=(1, 2))),
-    ("clf", LogisticRegression(class_weight="balanced", max_iter=1000))
+    ("clf", XGBClassifier(n_estimators=100, learning_rate=1.0, max_depth=1, random_state=0))
 
     # preprocess from prepare_dataset() 
     # convert text to vectors
     # scale numerical features
 ])
+
+sample_weights = compute_sample_weight(class_weight="balanced", y=y_train) # imbalance target classes handling
 
 pipeline.fit(X_train['Consumer complaint narrative'], y_train)
 predictions = pipeline.predict(X_test['Consumer complaint narrative'])
