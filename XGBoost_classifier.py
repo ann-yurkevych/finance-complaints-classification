@@ -15,6 +15,8 @@ from preprocessing import (
     prepare_dataset
 )
 from sklearn.metrics import classification_report, f1_score
+from text_features import clean_series # preprocess_text() includes tokenization, stopwords removal, lemmatization
+import joblib
 
 """Preprocessing steps:
 Sample from raw file.
@@ -46,13 +48,10 @@ y_train = label_encoder.fit_transform(y_train)
 y_test = label_encoder.transform(y_test)
 y_val = label_encoder.transform(y_val)
 
-def clean_series(text_series):
-    return text_series.apply(preprocess_text) # preprocess_text() includes tokenization, stopwords removal, lemmatization
-
 column_transformer = ColumnTransformer(
     transformers=[
         ("text", Pipeline([
-            ("clean", FunctionTransformer(clean_series)),
+            ("clean", FunctionTransformer(clean_series, feature_names_out="one-to-one")),
             ("tfidf", TfidfVectorizer(max_features=10000, ngram_range=(1, 2))),
         ]), 'Consumer complaint narrative'),
 
@@ -86,3 +85,6 @@ print(f"Macro-F1: {f1_score(y_test, predictions, average='macro'):.4f}")
 
 report_df = pd.DataFrame(report_dict).transpose()
 report_df.to_excel(os.path.join(output_dir, "classification_report.xlsx"))
+
+joblib.dump(pipeline, "models_results/XGBoost/pipeline.joblib") # saved in joblib for shap and feature importance analysis
+joblib.dump(label_encoder, "models_results/XGBoost/label_encoder.joblib")

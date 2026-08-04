@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 import nltk
 from nltk.tokenize import word_tokenize
 import re
+
 # empty text field handling
 def remove_missing_text_rows(df: pd.DataFrame, col: str = 'Consumer complaint narrative'):
     df = df[df[col].notna()]

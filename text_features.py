@@ -52,6 +52,8 @@ def preprocess_text(text: str):
     tokens = lemmatize(tokens)
     return " ".join(tokens)
 
+def clean_series(text_series):
+    return text_series.apply(preprocess_text)
 
 def vectorize_tfidf(train_texts: list[str], max_features: int = 10000, ngram_range: tuple = (1, 2)):
 
