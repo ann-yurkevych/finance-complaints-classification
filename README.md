@@ -11,7 +11,7 @@ The target varible is ´Company response to the consumer´.
 1. Go to `data_loading.py file`. 
 2. Run the command: `python data_loading.py`
 3. Run the command: `python preprocessing.py`. 
-4. Run the command: `python hyperparameters_tuning.py` for finding best params with Hyperopt.
+4. Run the command: `python hyperparameters_tuning.py` for finding best params with RandomizedSearchCV.
 5. Run the command: `python XGBoost_classifier.py` for baseline model without hyper parameters tuning + extended model with Hyperopt method for parameters tuning.
 
 ## Streamlit deployment
@@ -26,6 +26,8 @@ which features you chose, which deleted, text features.
 ## Baseline models
 
 ## Evaluation metrics
+
+## Extended models
 
 ## Models comparison
 

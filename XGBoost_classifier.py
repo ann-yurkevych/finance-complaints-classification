@@ -77,8 +77,8 @@ predictions = pipeline.predict(X_test)
 
 output_dir = "models_results/XGBoost"
 os.makedirs(output_dir, exist_ok=True)
-output_dir = "models_results/XGBoost_finetuned"
-os.makedirs(output_dir, exist_ok=True)
+tuned_output_dir = "models_results/XGBoost_finetuned"
+os.makedirs(tuned_output_dir, exist_ok=True)
 
 report_dict = classification_report(y_test, predictions, target_names=label_encoder.classes_, output_dict=True)
 macro_f1 = f1_score(y_test, predictions, average='macro')
@@ -109,8 +109,8 @@ pipeline = Pipeline([
 sample_weights = compute_sample_weight(class_weight="balanced", y=y_train)
 pipeline.fit(X_train, y_train, clf__sample_weight=sample_weights)
 
-joblib.dump(pipeline, os.path.join(output_dir, "pipeline_tuned.joblib"))
-joblib.dump(label_encoder, os.path.join(output_dir, "label_encoder.joblib"))
+joblib.dump(pipeline, os.path.join(tuned_output_dir, "pipeline_tuned.joblib"))
+joblib.dump(label_encoder, os.path.join(tuned_output_dir, "label_encoder.joblib"))
 
 predictions = pipeline.predict(X_test)
 report_dict = classification_report(y_test, predictions, target_names=label_encoder.classes_, output_dict=True)
@@ -119,9 +119,8 @@ macro_f1 = f1_score(y_test, predictions, average='macro')
 print(f"Macro-F1 (tuned): {macro_f1:.4f}")
 
 report_df = pd.DataFrame(report_dict).transpose()
-report_df.to_excel(os.path.join(output_dir, "classification_report.xlsx"))
+report_df.to_excel(os.path.join(tuned_output_dir, "classification_report.xlsx"))
 
-with open(os.path.join(output_dir, "macro_f1.txt"), "w") as f:
+with open(os.path.join(tuned_output_dir, "macro_f1.txt"), "w") as f:
     f.write(f"Macro-F1: {macro_f1:.4f}\n")
 
-    
