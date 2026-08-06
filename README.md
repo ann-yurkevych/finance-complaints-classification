@@ -131,9 +131,76 @@ features (`word_count`, `processing_days`, `year`).
 
 ## Baseline models
 ### Extreme Gradient Boosting
+I chose XGBoost as my first baseline because it is a strong, well established
+model for classification tasks that combine text and tabular features, and it
+was one of the model types listed in my assignment as an expected option.
+
+For my input features, I fed XGBoost a combination of TF IDF vectors from the
+complaint narrative, one hot encoded categorical columns (Product, Sub product,
+State, and Company), and three engineered numeric features (word count,
+processing days, and year). I built this whole pipeline as a single scikit
+learn Pipeline with a ColumnTransformer, so that text cleaning, vectorization,
+and encoding all happen consistently and are always fit only on my training
+data, avoiding any leakage into my validation or test sets.
+
+Since my target variable is heavily imbalanced (Closed with explanation makes
+up about 72% of my sample, while Untimely response is under 1%), I applied
+sample weighting through compute_sample_weight, so that the model is penalized
+more for misclassifying my rare classes rather than simply optimizing for the
+dominant class.
+
+I also attempted hyperparameter tuning with RandomizedSearchCV, scored on
+macro F1 rather than accuracy or weighted F1, since those metrics would still
+be dominated by my majority class. I initially tried a full search with 30
+candidates and 3 fold cross validation, but individual fits were taking up to
+22 minutes each, which made the full search impractical given my timeline. I
+reduced the search to a 20,000 row subsample of my training data with a
+narrower hyperparameter range and fewer iterations, which brought the search
+down to a manageable runtime. Interestingly, the tuned model performed
+slightly worse than my untuned baseline (macro F1 of 0.385 versus 0.409), which
+I believe reflects both the narrower search space I had to use for speed and
+the fact that XGBoost's defaults are already fairly strong for this kind of
+data. I kept my baseline model as my reported XGBoost result for this reason,
+and documented the tuning attempt as a negative result rather than discarding
+it.
 
 ### Feed-forward neural network
+I chose a feed forward neural network as my second baseline model, since it
+gave me a genuinely different architecture to compare against my tree based
+model, and Neural Networks (PyTorch/TensorFlow) were explicitly listed as a
+valid option in my assignment.
 
+Rather than building a separate feature pipeline for this model, I reused the
+exact same ColumnTransformer output I had already built for XGBoost, meaning
+the neural network receives the same TF IDF, one hot encoded, and scaled
+numeric features. I made this choice deliberately, since it let me isolate the
+effect of model architecture on performance, without also changing what
+information the model has access to.
+
+Because my feature matrix is dominated by a large, sparse TF IDF matrix
+(around 10,000 of my roughly 10,187 total features), I could not simply load
+everything into memory as a dense array without using several gigabytes of
+RAM. I wrote a small batching function that converts only one batch at a time
+from sparse to dense, which kept memory use manageable throughout training.
+
+For class imbalance, I used a weighted CrossEntropyLoss, computed with
+compute_class_weight, which is the PyTorch equivalent of the sample weighting
+I used for XGBoost.
+
+My first version of this model was a simple two hidden layer network trained
+for 10 epochs, which reached a macro F1 of 0.4134 on my test set, my best
+result at that point across all models I had tried. When I increased training
+to 25 epochs, my validation macro F1 improved noticeably, but my test macro F1
+barely moved (0.4134 to 0.4102), with the gains concentrated almost entirely
+in my majority class. I took this as a sign that I was reaching a ceiling set
+by my class imbalance and data volume, rather than by how long I trained the
+model.
+
+Based on that finding, I built an extended version of this model with a deeper
+architecture, batch normalization, a learning rate scheduler, early stopping,
+and gradient clipping, and I saved its results separately so I could compare
+it directly against my simpler baseline rather than overwriting my original
+result.
 ### Generative Large Language Models via API calls
 
 ## Evaluation metrics
