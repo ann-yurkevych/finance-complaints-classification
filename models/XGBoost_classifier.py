@@ -5,17 +5,17 @@ from xgboost import XGBClassifier
 from sklearn.compose import ColumnTransformer
 from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.feature_extraction.text import TfidfVectorizer
-from text_features import (
+from features.text_features import (
     preprocess_text
 )
 import pandas as pd
 import os
-from preprocessing import (
+from features.preprocessing import (
     extract_target,
     prepare_dataset
 )
 from sklearn.metrics import classification_report, f1_score
-from text_features import clean_series # preprocess_text() includes tokenization, stopwords removal, lemmatization
+from features.text_features import clean_series # preprocess_text() includes tokenization, stopwords removal, lemmatization
 import joblib
 import json
 

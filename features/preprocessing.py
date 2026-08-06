@@ -1,5 +1,5 @@
 import pandas as pd
-from data_loading import *
+from data.data_loading import *
 from sklearn.model_selection import train_test_split
 import nltk
 from nltk.tokenize import word_tokenize

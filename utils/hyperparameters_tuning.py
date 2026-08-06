@@ -13,8 +13,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from tqdm import tqdm
 from tqdm_joblib import tqdm_joblib
 
-from preprocessing import extract_target
-from text_features import clean_series
+from features.preprocessing import extract_target
+from features.text_features import clean_series
 
 TARGET_COL = "Company response to consumer"
 TEXT_COL = "Consumer complaint narrative"

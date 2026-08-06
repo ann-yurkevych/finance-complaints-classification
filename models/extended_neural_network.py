@@ -12,8 +12,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import classification_report, f1_score
 from sklearn.utils.class_weight import compute_class_weight
 
-from preprocessing import extract_target
-from text_features import clean_series
+from features.preprocessing import extract_target
+from features.text_features import clean_series
 
 TARGET_COL = "Company response to consumer"
 TEXT_COL = "Consumer complaint narrative"
