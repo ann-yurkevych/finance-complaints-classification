@@ -23,11 +23,11 @@ dataset.
 ## How to run a project? 
 
 1. Go to `data_loading.py file`. 
-2. Run the command: `python data/data_loading.py`
+2. Run the command: `python data/data_loading.py` to download raw dataset. 
 3. Run the command: `python -m features.preprocessing`. 
 4. Run the command: `python -m utils.hyperparameters_tuning` for finding best params with RandomizedSearchCV.
 5. Run the command: `python -m models.XGBoost_classifier` for baseline model without hyper parameters tuning + extended model with Hyperopt method for parameters tuning.
-6. Run the command: `python -m models.neural_network_classifier`.
+6. Run the command: `python -m models.neural_network`.
 7. Run the command: `python -m models.extended_neural_network`.
 8. 
 
@@ -136,6 +136,8 @@ before I ever trained a model.
 | Company response to consumer | 0 | 0.00% |
 | Timely response? | 0 | 0.00% |
 | Complaint ID | 0 | 0.00% |
+
+
 I dropped `Tags` entirely given how much of it was missing (86.9%), and
 because replacing it with synthetic values would have introduced noise into
 my training set rather than real signal. I also dropped `Company public
@@ -177,7 +179,88 @@ percentile at 257 words), rather than truncating aggressively across the
 board.
 
 ## Feature Engineering
+### Columns I dropped entirely
 
+| Column | Reason |
+|---|---|
+| `Tags` | 86.9% missing (see Missing Values above) |
+| `Company public response` | Leakage risk, reflects the company's explanation for a decision that's already been made, plus ~50% missing/boilerplate |
+| `Submitted via` | Constant value in my sampled data (100% "Web"), zero variance, no predictive value |
+| `Complaint ID` | Row identifier, no predictive content |
+| `Date received`, `Date sent to company` (as raw columns) | Not usable directly by any model, I only retained them through the derived features below |
+
+### Text feature: `Consumer complaint narrative`
+
+This is my primary model input. I applied this cleaning pipeline before
+vectorization:
+
+1. **Redaction token removal** - CFPB masks personal information as
+   `XXXX`/`XX` placeholders. As I found in my EDA, these dominated my
+   n-gram frequency analysis before I cleaned them, so I removed them via
+   regex first.
+2. **Tokenization** - word-level, via NLTK.
+3. **Stopword removal** - standard English stopword list.
+4. **Lemmatization** - I reduce words to their dictionary form (e.g.
+   "charged" -> "charge"), so inflected forms of the same word aren't split
+   into separate vocabulary entries.
+5. **Vectorization** - TF-IDF, `max_features=10,000`, unigrams and bigrams.
+   I chose this cap after checking my vocabulary composition: the full
+   cleaned vocabulary contained 80,333 unique tokens, but 77% appeared five
+   times or fewer across my ~100,000-document sample, indicating a long
+   tail of rare, non-generalizable terms. I set `max_features=10,000` to
+   retain the more frequent, informative portion while excluding this tail.
+
+I only apply this cleaning pipeline to my classical models (Logistic
+Regression, XGBoost, feed forward neural network). For my BERT model, I use
+raw, uncleaned narrative text with its own subword tokenizer instead, since
+stopword removal and lemmatization are known to hurt transformer
+performance given these models are pretrained on natural, unprocessed
+language.
+### Engineered numeric features
+
+- **`word_count`** - narrative length in words. As I found in my EDA,
+  complaints resulting in monetary relief had a notably higher median
+  length and greater variability than the other outcome categories, and
+  long complaints (over 526 words) had a 6.1% monetary relief rate versus
+  3.8% overall, a real, converging signal across two separate checks.
+- **`processing_days`** - the gap between `Date received` and
+  `Date sent to company`. I included this because it's available prior to
+  resolution, so there's no leakage concern.
+- **`year`** - extracted from `Date received`. My EDA showed a substantial
+  shift in the response-label distribution around 2021, so I expected this
+  to carry real signal. I flagged a caveat though: this may partly reflect
+  a change in CFPB's labeling taxonomy or policy era rather than complaint
+  content itself, and a model relying heavily on it may generalize poorly
+  outside my training date range. My feature importance analysis later
+  showed `year` contributing meaningfully but not dominating, which
+  suggested my model relies primarily on text and categorical content
+  rather than solely on this temporal artifact.
+
+I standardized all numeric features before feeding them into Logistic
+Regression and my neural network. I didn't scale them for XGBoost, since
+tree-based splits are unaffected by monotonic transformations.
+
+### Categorical features
+
+- **`Product`, `Sub-product`, `State`** - I one-hot encoded these.
+- **`Sub-product`, `Sub-issue`** - as covered in Missing Values, I filled
+  these with `"Not applicable"` rather than imputing a mode value, since I
+  found the missingness was structural rather than random.
+- **`State`** - I filled the small share of missing values with
+  `"Unknown"`.
+- **`Company`** - as I found in my EDA, this column is extremely
+  long-tailed, with the top three companies alone accounting for around
+  45,000 complaints in my sample. Rather than one-hot encoding thousands of
+  near-unique categories, I grouped every company outside the top 20 by
+  volume into an `"Other"` category.
+
+### Feature space summary
+
+My final feature matrix contained 10,187 total features: 10,000 TF-IDF
+text features (capped as described above), around 184 one-hot encoded
+categorical features across `Product`, `Sub-product`, `State`, and
+`Company`, and 3 engineered numeric features (`word_count`,
+`processing_days`, `year`).
 ### Columns I dropped entirely
 
 | Column | Reason |
@@ -379,7 +462,17 @@ I added early stopping with a patience of 5 epochs, so training stops automatica
 I saved this model's results separately from my baseline, so I could compare the two directly rather than overwriting my original result.
 
 ## Models comparison
+| Model | Parameters | Macro F1 (Test) | Accuracy (Test) |
+|---|---|---|---|
+| XGBoost (baseline) | default params, `sample_weight="balanced"` | 0.383 | 0.663 |
+| XGBoost (tuned) | RandomizedSearchCV, 10 candidates, 2-fold CV, tuned on a 20,000-row subsample | 0.385 | - |
+| Feed-forward NN (baseline) | hidden layers 256, 64; 10 epochs; lr=1e-3 | 0.390 | 0.749 |
+| Feed-forward NN (extended) | hidden layers 512, 128, 32; batch norm; lr=5e-4 with scheduler; early stopping | **0.432** | **0.756** |
 
+My extended feed-forward neural network was my best-performing model overall,
+improving macro F1 from 0.390 (baseline NN) to 0.432, driven primarily by
+better performance on the majority class and "Closed with non-monetary
+relief.
 ## Feature importance
 
 ## Analysis of errors

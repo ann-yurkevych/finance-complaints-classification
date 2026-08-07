@@ -191,7 +191,7 @@ if __name__ == "__main__":
     joblib.dump(label_encoder, os.path.join(OUTPUT_DIR, "label_encoder.joblib"))
 
     report_df = pd.DataFrame(report_dict).transpose()
-    report_df.to_excel(os.path.join(OUTPUT_DIR, "classification_report.xlsx"))
+    report_df.to_excel(os.path.join(OUTPUT_DIR, "Feed_forward_neural_network_extended.xlsx"))
 
     with open(os.path.join(OUTPUT_DIR, "classification_report.txt"), "w") as f:
         f.write(report_text)

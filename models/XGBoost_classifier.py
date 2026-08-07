@@ -87,7 +87,7 @@ print(classification_report(y_test, predictions, target_names=label_encoder.clas
 print(f"Macro-F1: {f1_score(y_test, predictions, average='macro'):.4f}")
 
 report_df = pd.DataFrame(report_dict).transpose()
-report_df.to_excel(os.path.join(output_dir, "classification_report.xlsx"))
+report_df.to_excel(os.path.join(output_dir, "XGBoost.xlsx"))
 
 joblib.dump(pipeline, "models_results/XGBoost/pipeline.joblib") # saved in joblib for shap and feature importance analysis
 joblib.dump(label_encoder, "models_results/XGBoost/label_encoder.joblib")
@@ -119,7 +119,7 @@ macro_f1 = f1_score(y_test, predictions, average='macro')
 print(f"Macro-F1 (tuned): {macro_f1:.4f}")
 
 report_df = pd.DataFrame(report_dict).transpose()
-report_df.to_excel(os.path.join(tuned_output_dir, "classification_report.xlsx"))
+report_df.to_excel(os.path.join(tuned_output_dir, "XGBoost_finetuned.xlsx"))
 
 with open(os.path.join(tuned_output_dir, "macro_f1.txt"), "w") as f:
     f.write(f"Macro-F1: {macro_f1:.4f}\n")
