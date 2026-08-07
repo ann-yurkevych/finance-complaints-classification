@@ -36,9 +36,9 @@ Sample from raw file.
 """
 target_column = 'Company response to consumer'
 
-train_df = pd.read_csv("train.csv")
-test_df = pd.read_csv("test.csv")
-val_df = pd.read_csv("validation.csv")
+train_df = pd.read_csv("../train.csv")
+test_df = pd.read_csv("../test.csv")
+val_df = pd.read_csv("../validation.csv")
 
 X_train, y_train = extract_target(train_df, target_column)
 X_test, y_test = extract_target(test_df, target_column)

@@ -5,22 +5,30 @@ Predicting how consumer finance complaints get resolved, using user complaints.
 
 Predict how a company will resolve a consumer complaint, based on the complaint's
 text and associated metadata.
-
 **Target variable:** `Company response to consumer`
-
 **Task type:** Multi-class classification (4 classes after removing rare/unstable
-categories 
+categories)
 
+## Dataset
+
+**Source:** [CFPB Consumer Complaint Database](https://www.consumerfinance.gov/data-research/consumer-complaints/)
+**Direct download:** https://files.consumerfinance.gov/ccdb/complaints.csv.zip
+
+The CFPB publishes this data on an ongoing basis, so the total row count
+grows daily. As of my data pull (August 2026), the raw dataset contained
+approximately 16.5 million complaints across 16 columns, spanning 2013 to
+present. I used a stratified sample of 100,000 rows drawn from this full
+dataset. 
 
 ## How to run a project? 
 
 1. Go to `data_loading.py file`. 
-2. Run the command: `python data_loading.py`
-3. Run the command: `python preprocessing.py`. 
-4. Run the command: `python hyperparameters_tuning.py` for finding best params with RandomizedSearchCV.
-5. Run the command: `python XGBoost_classifier.py` for baseline model without hyper parameters tuning + extended model with Hyperopt method for parameters tuning.
-6. Run the command: `python neural_network.py`.
-7. Run the command: `python extended_neural_network.py`.
+2. Run the command: `python data/data_loading.py`
+3. Run the command: `python -m features.preprocessing`. 
+4. Run the command: `python -m utils.hyperparameters_tuning.py` for finding best params with RandomizedSearchCV.
+5. Run the command: `python models/XGBoost_classifier.py` for baseline model without hyper parameters tuning + extended model with Hyperopt method for parameters tuning.
+6. Run the command: `-m models.neural_network_classifier`.
+7. Run the command: `-m models.extended_neural_network.py`.
 8. 
 
 ## Streamlit deployment
