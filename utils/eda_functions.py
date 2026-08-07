@@ -12,32 +12,6 @@ CLASS_COLORS = {
 
 DEFAULT_COLOR = '#999999'
 
-def class_distribution_plot(df: pd.DataFrame, target: str = 'Company response to consumer'):
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-    colors = ['#E69F00', '#56B4E9', '#009E73', '#F0E442', '#D55E00']
-    counts = df[target].value_counts()
-    axes[0].bar(counts.index.astype(str), counts.values, color=['green', 'coral'], edgecolor='white', width=0.5)
-    axes[0].set_title('Class Distribution (Counts)', fontsize=13, fontweight='bold')
-    axes[0].set_xlabel('Class')
-    axes[0].set_ylabel('Count')
-    axes[0].set_yscale('log')
-    for i, v in enumerate(counts.values):
-        axes[0].text(i, v + 200, f'{v:,}', ha='center', fontweight='bold')
-    
-    proportions = df[target].value_counts(normalize=True)
-    axes[1].bar(proportions.index.astype(str), proportions.values, color=['green', 'coral'], edgecolor='white', width=0.5)
-    axes[1].set_title('Class Distribution (Proportions)', fontsize=13, fontweight='bold')
-    axes[1].set_xlabel('Class')
-    axes[1].set_ylabel('Proportion')
-    axes[1].set_xticklabels(proportions.index.astype(str), rotation=30, ha='right')
-    for i, v in enumerate(proportions.values):
-        axes[1].text(i, v + 0.001, f'{v:.1%}', ha='center', fontweight='bold')
-    
-    plt.suptitle(f'Target Variable Class Distribution: "{target}"', fontsize=15, fontweight='bold', y=1.02)
-    plt.tight_layout()
-    plt.show()
-
-
 def average_word_length(text):
     if pd.isna(text) or text.strip() == "":
         return 0
@@ -79,6 +53,7 @@ def class_distribution_plot(df: pd.DataFrame, target: str = 'Company response to
 
     plt.suptitle(f'Target Variable Class Distribution: "{target}"', fontsize=15, fontweight='bold', y=1.02)
     plt.tight_layout()
+    fig.savefig("../images/target_class_distribution.png", dpi=200, bbox_inches='tight')
     plt.show()
 
 def class_distribution_over_time(df: pd.DataFrame, target: str = 'Company response to consumer', date_col: str = 'Date received'):
@@ -116,6 +91,7 @@ def class_distribution_over_time(df: pd.DataFrame, target: str = 'Company respon
     ax.set_xticklabels(class_by_year.index, rotation=45, ha='right')
 
     plt.tight_layout()
+    fig.savefig("../images/class_distribution_over_time.png", dpi=200, bbox_inches='tight')
     plt.show()
 
     return class_by_year
@@ -149,6 +125,7 @@ def sub_product_missing_values(df: pd.DataFrame, product_col: str = 'Product', s
         ax.text(v + 1.5, i, f'{v:.0f}%', va='center', fontsize=10)
 
     plt.tight_layout()
+    fig.savefig("../images/products-with-missing-subproduct.png", dpi=200, bbox_inches='tight')
     plt.show()
 
     return pct_missing
@@ -208,6 +185,7 @@ def top_companies_by_complaint(df: pd.DataFrame, company_col: str = 'Company', t
         ax.text(v * 1.01, i, f'{v:,}', va='center', fontsize=7)
 
     plt.tight_layout()
+    fig.savefig("../images/top_companies_by_complaint.png", dpi=200, bbox_inches='tight')
     plt.show()
 
     return top
@@ -246,6 +224,7 @@ def plot_top_ngrams(text_series, n=2, top_k=15):
         ax.text(v * 1.01, i, f'{v:,}', va='center', fontsize=8)
 
     plt.tight_layout()
+    fig.savefig("../images/top_n_grams.png", dpi=200, bbox_inches='tight')
     plt.show()
 
 def narrative_length_by_target(df: pd.DataFrame, text_col: str = 'Consumer complaint narrative', target_col: str = 'Company response to consumer'):
@@ -268,6 +247,7 @@ def narrative_length_by_target(df: pd.DataFrame, text_col: str = 'Consumer compl
     ax.spines['right'].set_visible(False)
 
     plt.tight_layout()
+    fig.savefig("../images/narrative_length_by_target.png", dpi=200, bbox_inches='tight')
     plt.show()
 
     print(df.groupby(target_col)['word_count'].median().sort_values(ascending=False))

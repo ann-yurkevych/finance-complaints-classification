@@ -35,6 +35,26 @@ dataset.
 
 ## Exploratory data analysis
 
+### Missing Values
+
+| Column | Missing Count | Missing % |
+|---|---|---|
+| Tags | 86,859 | 86.89% |
+| Company public response | 49,508 | 49.52% |
+| Sub-issue | 11,853 | 11.86% |
+| Sub-product | 1,934 | 1.93% |
+| State | 395 | 0.40% |
+| ZIP code | 4 | 0.00% |
+| Date received | 0 | 0.00% |
+| Product | 0 | 0.00% |
+| Issue | 0 | 0.00% |
+| Consumer complaint narrative | 0 | 0.00% |
+| Company | 0 | 0.00% |
+| Submitted via | 0 | 0.00% |
+| Date sent to company | 0 | 0.00% |
+| Company response to consumer | 0 | 0.00% |
+| Timely response? | 0 | 0.00% |
+| Complaint ID | 0 | 0.00% |
 ## Time Series analysis
 
 ## Feature Engineering
