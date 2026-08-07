@@ -25,15 +25,96 @@ dataset.
 1. Go to `data_loading.py file`. 
 2. Run the command: `python data/data_loading.py`
 3. Run the command: `python -m features.preprocessing`. 
-4. Run the command: `python -m utils.hyperparameters_tuning.py` for finding best params with RandomizedSearchCV.
-5. Run the command: `python models/XGBoost_classifier.py` for baseline model without hyper parameters tuning + extended model with Hyperopt method for parameters tuning.
-6. Run the command: `-m models.neural_network_classifier`.
-7. Run the command: `-m models.extended_neural_network.py`.
+4. Run the command: `python -m utils.hyperparameters_tuning` for finding best params with RandomizedSearchCV.
+5. Run the command: `python -m models.XGBoost_classifier` for baseline model without hyper parameters tuning + extended model with Hyperopt method for parameters tuning.
+6. Run the command: `python -m models.neural_network_classifier`.
+7. Run the command: `python -m models.extended_neural_network`.
 8. 
 
 ## Streamlit deployment
 
 ## Exploratory data analysis
+### Target variable distribution
+
+![Target class distribution](images/target_class_distribution.png)
+
+The target variable is heavily imbalanced. "Closed with explanation" accounts
+for 72.1% of my sample (72,130 complaints), "Closed with non-monetary relief"
+for 23.5%, and the remaining three classes together make up just 4.3%
+("Closed with monetary relief" at 3.8%, "Untimely response" at 0.4%, and
+"Closed" at only 0.1%, 143 complaints).
+
+I can't rely on accuracy as my evaluation
+metric, since a model that always predicted "Closed with explanation" would
+already score around 72% accuracy without learning anything real. I used
+macro F1 as my primary metric for this reason, and applied class weighting
+across all my models to handle the imbalance.
+
+### Class distribution over time
+
+![Class distribution over time](images/class_distribution_over_time.png)
+
+I found that the label distribution shifted substantially over the years my
+data spans. "Closed with explanation" stayed above 75% from 2015 through
+2020, then dropped sharply to around 60% by 2024, while "Closed with
+non-monetary relief" rose from roughly 10% up to 37% over the same period,
+before partially reverting in 2025 and 2026. I also noticed the "Closed"
+category (without any qualifier) only appears in the earliest years of my
+data and disappears entirely after 2017, which told me CFPB's labeling
+taxonomy itself changed at some point rather than this being noise.
+
+I concluded from this that pooling all years together means my model is
+learning across two somewhat different labeling eras, not one consistent
+one. I engineered `year` as a feature partly because of this finding, but I
+also flagged it as a real limitation: a model that leans on `year` may not
+generalize well to complaints outside my training date range, since it
+could be capturing a policy-era artifact rather than something about the
+complaint's actual content.
+
+### Narrative length by target class
+
+![Narrative length by company response](images/narrative_length_by_target.png)
+
+I found that complaints resulting in "Closed with monetary relief" had a
+noticeably higher median word count (around 200 words) and a wider spread
+than every other response category, while the other four classes clustered
+closer together with medians in the 100-155 word range. I confirmed this
+pattern a second way by checking the monetary relief rate specifically
+among long complaints (over 526 words, my IQR-based outlier threshold): 6.1%
+of long complaints resulted in monetary relief, compared to 3.8% across the
+whole dataset, a roughly 60% relative increase.
+
+Since these two checks pointed the same direction independently, I concluded
+that narrative length is a genuinely informative signal, not just a
+coincidence in this one chart, and engineered `word_count` as a feature for
+my classical models based on this finding.
+
+### Top companies by complaint volume
+
+![Top 15 companies by complaint volume](images/top_companies_by_complaint.png)
+
+I found the distribution of complaints across companies is extremely
+long-tailed. TransUnion, Equifax, and Experian together account for roughly
+45,000 of the complaints in my sample, three companies out of thousands
+represented in the full dataset. Given this concentration, I decided one-hot
+encoding every individual company would have created an unusably sparse
+feature space dominated by categories with only one or two examples each,
+so I grouped every company outside the top 20 by volume into an "Other"
+category before encoding.
+
+### Bigram frequency
+
+![Top 15 bigrams](images/top_n_grams.png)
+
+Early in this analysis, before I added redaction-token cleaning to my
+pipeline, my bigram frequency was dominated by CFPB's `XXXX`/`XX` redaction
+placeholders rather than real content, "xxxx xxxx" alone appeared over 1.1
+million times. After I added a cleaning step to strip these tokens, the top
+bigrams became genuinely informative: "credit report," "identity theft,"
+"fair credit," and "credit bureaus" all appear among the most frequent
+phrases, which told me the classification task has real, learnable
+vocabulary-level signal, particularly around credit reporting disputes,
+before I ever trained a model.
 
 ### Missing Values
 
@@ -55,7 +136,45 @@ dataset.
 | Company response to consumer | 0 | 0.00% |
 | Timely response? | 0 | 0.00% |
 | Complaint ID | 0 | 0.00% |
-## Time Series analysis
+I dropped `Tags` entirely given how much of it was missing (86.9%), and
+because replacing it with synthetic values would have introduced noise into
+my training set rather than real signal. I also dropped `Company public
+response` despite it being a less extreme 49.5% missing, but for a different
+reason: I identified it as a leakage risk, since it reflects the company's
+own explanation for how it already handled the complaint, meaning it would
+only exist after the resolution decision was made, not before.
+
+For `Sub-issue` and `Sub-product`, I checked whether missingness was random
+before deciding how to handle it, and found it wasn't. Certain `Product`
+categories, like "Credit reporting" and "Payday loan," had `Sub-product`
+missing 100% of the time, while most other products had it present 100% of
+the time, with only "Credit card" showing a genuine partial split at 16%
+missing. This told me the missingness was structural, not random, so rather
+than imputing a mode value or dropping rows, I filled these with
+`"Not applicable"`, treating the absence of a sub-category as a meaningful
+value in itself rather than a gap to guess at.
+
+For `State`, missingness was low (0.4%) and I filled it with `"Unknown"`
+rather than investigating further, given how small a share of the data it
+affects.
+### Outliers
+
+I checked for outliers in narrative word count using the IQR method. My
+upper bound came out to 526 words, and 6,540 rows (6.5% of my sample)
+exceeded it, with the single longest complaint running to 6,218 words.
+
+I decided against removing these rows. Since I'd already found that longer
+narratives correlate with a higher rate of monetary relief outcomes, I
+concluded these "outliers" were more likely genuinely detailed complaints
+than data errors, and removing them risked discarding exactly the rows most
+associated with my rarer, more important target classes. I did check the
+opposite end too, complaints of only one or two words, since those are a
+better candidate for being uninformative placeholder text rather than
+genuine outliers, but I kept the outlier-length rows as-is and instead
+accounted for them practically by choosing a `max_length` for my BERT/neural
+network input based on where the bulk of my narratives actually fall (75th
+percentile at 257 words), rather than truncating aggressively across the
+board.
 
 ## Feature Engineering
 
@@ -234,6 +353,30 @@ result.
 ## Evaluation metrics
 
 ## Extended models
+### Hyperparameter tuned XGBoost
+
+I tuned my baseline XGBoost model using RandomizedSearchCV, scored on macro F1 rather than accuracy or weighted F1, since those would still be dominated by my majority class.
+
+My first attempt used the full search space (30 candidates, 3 fold cross validation, 90 total fits) on my full training set. Individual fits took up to 22 minutes each, which made the full search impractical given my timeline, so I redesigned the search for speed. I moved to a 20,000 row subsample of my training data, narrowed my hyperparameter ranges (particularly max_depth and n_estimators, which I found were the biggest drivers of fit time), and reduced my search to 10 candidates with 2 fold cross validation, bringing the search down to a manageable runtime.
+
+Once I had my best parameters, I retrained a fresh model on my full training set with those parameters applied, since the search itself only ran on the subsample.
+
+My tuned model ended up performing slightly worse than my untuned baseline (macro F1 of 0.385 versus 0.409). I kept my baseline as my reported XGBoost result and documented this as a negative tuning result rather than discarding the attempt.
+
+### Extended feed forward neural network
+
+I built the extended neural network after noticing that training my baseline model for more epochs (10 versus 25) improved my validation macro F1 but barely moved my test macro F1 (0.4134 versus 0.4102), with the gains concentrated almost entirely in my majority class. I took this as a sign I was reaching a ceiling set by class imbalance and data volume, rather than by training duration, so my extended version focused on architectural changes instead of just training longer.
+
+I made four changes compared to my baseline model:
+
+I deepened and widened the network from two hidden layers (256 to 64) to three hidden layers (512 to 128 to 32), giving it more capacity to learn from my 10,187 input features.
+
+I added batch normalization after each hidden layer, which stabilizes training and generally helps the network converge to a better solution.
+
+I lowered my learning rate from 1e-3 to 5e-4 and added a ReduceLROnPlateau scheduler, which automatically shrinks the learning rate once validation macro F1 stops improving, allowing finer convergence than a fixed learning rate.
+
+I added early stopping with a patience of 5 epochs, so training stops automatically once validation macro F1 hasn't improved for 5 consecutive epochs, rather than me having to guess the right number of epochs in advance.
+I saved this model's results separately from my baseline, so I could compare the two directly rather than overwriting my original result.
 
 ## Models comparison
 
