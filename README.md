@@ -474,10 +474,91 @@ improving macro F1 from 0.390 (baseline NN) to 0.432, driven primarily by
 better performance on the majority class and "Closed with non-monetary
 relief.
 ## Feature importance
-
-## Analysis of errors
+![Feature importance plot](images/feature_importance.png)
+I also checked XGBoost's own feature importance as a second view alongside
+SHAP. It mostly agrees: `year` comes out on top again, followed by
+`word_count` and `Company_Other`. Real words like `credit`, `account`, and
+`report` also show up near the top, which is a good sign, it means the
+model isn't only looking at metadata, it's actually using the complaint
+text too. One thing that's different from the SHAP chart: `word_count`
+ranks higher here (2nd place). That makes sense once you know the two
+methods measure different things: this chart counts how often a feature
+was used to split the trees, while SHAP measures how much a feature
+actually changed each prediction. So a feature can get used a lot without
+having a big effect every time.
 
 ## Models interpretation with SHAP (SHapley Additive exPlanations)
+### Global feature importance across all classes
+
+![SHAP summary plot](images/shap_summary_plot.png)
+
+I found that `year` was the single strongest driver of my XGBoost model's
+predictions overall, with `Company_Other` (my bucketed "everything outside
+the top 20 companies" category) as the second strongest. Looking at the
+color breakdown by class, `year` contributes especially heavily to the
+"Closed" and "Closed with non-monetary relief" classes specifically, which
+lines up with what I found in my EDA: the response-label distribution
+shifted substantially around 2021, so it makes sense the model leans on
+this feature for the classes whose prevalence changed the most over time.
+
+This confirmed the caveat I'd already flagged during feature engineering:
+`year` is doing real work in this model, more than any single word or
+company. I still don't think this is purely an artifact, since
+`categorical__Sub-product_Credit reporting` and several real content words
+(`account`, `card`, `report`) also rank highly, but it's a limitation worth
+being upfront about, a model this dependent on `year` may not generalize
+as well to complaints from outside my training window.
+
+### Per-class interpretation: Closed with monetary relief
+
+![SHAP summary for Closed with monetary relief](images/shap_summary_Closed_with_monetary_relief.png)
+
+Looking specifically at what drives predictions toward or away from
+"Closed with monetary relief," I found that `Sub-product_Credit reporting`
+has a strong negative relationship: when a complaint's sub-product is
+credit reporting, that consistently pushes the prediction away from
+monetary relief. `Product_Debt collection` shows a similar negative
+pattern. On the other hand, individual content words like `card`, `bank`,
+`charge`, and `fee` show more mixed, sometimes positive contributions,
+which makes intuitive sense given complaints about card fees or bank
+charges are more likely to describe a disputed dollar amount than a credit
+reporting error is.
+
+### Feature dependence: word count
+
+![SHAP dependence plot for word count](images/shap_dependence_word_count.png)
+
+I looked specifically at how `word_count` relates to its own SHAP
+contribution for the "Closed with monetary relief" class, since my EDA had
+already flagged narrative length as a meaningful signal. The pattern I
+found here was more specific than the EDA boxplot alone showed: it isn't
+that longer narratives uniformly push toward monetary relief, it's that
+**short, below-average-length narratives carry a much more volatile,
+often strongly negative** SHAP contribution (several points reaching -0.3
+to -0.5), while narratives at or above average length cluster much closer
+to zero impact. In other words, a short complaint isn't neutral, it
+actively works against a monetary relief prediction, while a longer one is
+closer to indifferent rather than strongly positive on its own. This
+refined, rather than contradicted, my earlier EDA finding.
+
+### Error analysis: explaining a misclassified prediction
+
+![SHAP force plot for a misclassified example](images/shap_force_plot_misclassified_example.png)
+
+To move beyond aggregate patterns, I picked an individual complaint my
+model misclassified and used a force plot to see exactly which features
+drove that specific wrong prediction. For this example, the model's
+predicted class was pushed higher primarily by `Company_EQUIFAX, INC. = 1`
+and `Sub-product_Credit reporting = 1`, with `Company_Other = 0` also
+contributing in the same direction, while `Company_TRANSUNION = 0` pulled
+the prediction back down. This tells me that for this particular
+complaint, the model leaned heavily on *which company* was involved and
+the credit-reporting sub-product, rather than on the specific content of
+the narrative itself, which is a plausible explanation for why it got this
+one wrong: two different companies handling a similar credit-reporting
+complaint don't necessarily resolve it the same way, but the model has
+learned company identity as a strong prior regardless.
+
 
 
 
