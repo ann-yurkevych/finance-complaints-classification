@@ -4,7 +4,8 @@ import time
 import requests
 import pandas as pd
 from sklearn.metrics import classification_report, f1_score
- 
+import json 
+
 TEXT_COLUMN = "Consumer complaint narrative"
 TARGET_COLUMN = "Company response to consumer"
 SAMPLE_SIZE = 300
@@ -19,8 +20,14 @@ CATEGORIES = [
     "Untimely response",
 ]
  
-API_URL = "https://router.huggingface.co/hf-inference/models/meta-llama/Llama-3.3-70B-Instruct/v1/chat/completions"
-HF_TOKEN = os.environ.get("HF_TOKEN")
+API_URL = "https://router.huggingface.co/v1/chat/completions"
+
+def load_hf_token(creds_path="creds.json"):
+    with open(creds_path) as f:
+        creds = json.load(f)
+    return creds["huggingface"]["api_key"]
+
+HF_TOKEN = load_hf_token()
  
  
 def classify_complaint(text, max_attempts=3):
@@ -51,13 +58,13 @@ def classify_complaint(text, max_attempts=3):
             for category in CATEGORIES:
                 if category.lower() in answer:
                     return category
-            return "UNKNOWN"  # LLM answered, but not with a recognizable category
+            return "UNKNOWN" 
  
         except Exception as error:
             print(f"  attempt {attempt + 1} failed ({error}), retrying...")
             time.sleep(3)
  
-    return "UNKNOWN"  # every attempt failed
+    return "UNKNOWN" 
  
  
 if __name__ == "__main__":

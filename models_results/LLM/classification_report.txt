@@ -1,0 +1,14 @@
+Unmatched: 135/300
+
+                                 precision    recall  f1-score   support
+
+        Closed with explanation       0.67      0.73      0.70       109
+    Closed with monetary relief       0.12      0.25      0.17         4
+Closed with non-monetary relief       0.22      0.08      0.12        51
+              Untimely response       0.00      0.00      0.00         1
+
+                       accuracy                           0.52       165
+                      macro avg       0.25      0.27      0.25       165
+                   weighted avg       0.52      0.52      0.50       165
+
+Macro-F1: 0.2461

@@ -29,7 +29,8 @@ dataset.
 5. Run the command: `python -m models.XGBoost_classifier` for baseline model without hyper parameters tuning + extended model with Hyperopt method for parameters tuning.
 6. Run the command: `python -m models.neural_network`.
 7. Run the command: `python -m models.extended_neural_network`.
-8. 
+8. Run the command: `python -m models.llama_via_api`.
+
 
 
 ## Exploratory data analysis
@@ -431,6 +432,54 @@ and gradient clipping, and I saved its results separately so I could compare
 it directly against my simpler baseline rather than overwriting my original
 result.
 ### Generative Large Language Models via API calls
+#### LLM via API: Llama-3.3-70B-Instruct
+
+### Why I chose this model
+
+I chose `meta-llama/Llama-3.3-70B-Instruct`, accessed through Hugging Face's
+free Inference API, as my third model to match the model comparison
+structure suggested by my assignment: an LLM via API, a gradient boosting
+model, and a neural network, all applied to the same classification task.
+I picked this specific model because it's a strong, widely used,
+instruction-tuned open model, and using it through Hugging Face's free
+tier meant I didn't need a paid API key from a closed provider like OpenAI
+or Anthropic to complete this part of my project.
+
+Unlike my other three models, this one involves no training at all. I'm
+not fine-tuning anything or learning from my training data, I'm simply
+prompting an already-trained, general-purpose LLM with a description of
+the categories and asking it to classify each complaint directly. This
+makes it a genuinely different kind of comparison point: how well does a
+model with no task-specific training do, compared to models I explicitly
+trained on this data.
+
+### How I used it
+
+For each complaint, I sent a prompt listing the four possible resolution
+categories and asked the model to respond with only the matching category
+name. Since LLMs don't always repeat a label back exactly as given, I
+built a matching function that checks the model's response against my
+known category list and falls back to `"UNKNOWN"` if nothing matches, so
+I could exclude unparseable responses from scoring rather than silently
+treating them as wrong predictions. I used `temperature=0.0` to keep
+responses as consistent as possible, since I wanted repeatable
+classification behavior rather than creative variation.
+
+### A limitation I ran into
+
+Running this model at scale (300 complaints) revealed a real constraint of
+the free tier: I intermittently hit `402 Payment Required` errors partway
+through my run, meaning Hugging Face's free allowance for a model this
+large (70B parameters) isn't unlimited, some requests succeeded, others
+were rejected once a usage threshold was hit. My script already had retry
+logic and marked failed requests as `"UNKNOWN"`, excluding them from
+scoring rather than counting them as misclassifications, but this meant a
+portion of my sample didn't get a real prediction from the LLM. I report
+this honestly as a limitation rather than hiding it, and treat my LLM
+macro F1 as based on a somewhat smaller effective sample than the full 300
+rows I intended.
+Once your run finishes and you know the actual Unmatched: X/300 count, let me know the number and I'll add a concrete sentence stating it directly (e.g. "23 of 300 requests failed due to payment/rate limits, leaving 277 scored predictions") instead of the general description above.
+
 
 ## Evaluation metrics
 
