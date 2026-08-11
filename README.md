@@ -477,6 +477,7 @@ relief.
 
 ## Analysis of errors
 
-## Results
+## Models interpretation with SHAP (SHapley Additive exPlanations)
+
 
 
