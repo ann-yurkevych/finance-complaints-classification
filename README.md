@@ -31,7 +31,6 @@ dataset.
 7. Run the command: `python -m models.extended_neural_network`.
 8. 
 
-## Streamlit deployment
 
 ## Exploratory data analysis
 ### Target variable distribution
